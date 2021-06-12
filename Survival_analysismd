@@ -1,0 +1,374 @@
+# Comprehensive analysis of clincal inforamation and murine leukemogenesis
+
+## 1. SFs in TARGET-AML
+
+~~~R
+AML_FPKM <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/AML_PROJECT/TCGA_AML/TCGA_AML_RNA_expr_ID_transfer.csv")
+rownames(AML_FPKM) <- AML_FPKM$X
+AML_FPKM <- AML_FPKM[,-1]
+Norm <- c("Sf3a1")
+Early <- c("Pcbp1","Dhx15","Srsf7","Tra2b","Snrpd3","Srsf3","Hnrnpc","Srsf2","Ncbp1")
+Meid <- c("Snrpa1","Snrpa","Srsf1","Hnrnpu","Hnrnpa3","Prpf31")
+Late <- c("Lsm2","Ncbp2","Snrpb2","Snrpd1","Hnrnpa1","Snrpd2","Sf3b3")
+all_genes <- Norm
+AML_FPKM_Sel <- AML_FPKM[intersect(all_genes,rownames(AML_FPKM)),]
+AML_FPKM_Sel <- log(AML_FPKM_Sel+1,2)
+AML_FPKM_Sel_sd <- AML_FPKM_Sel[apply(AML_FPKM_Sel,1,sd)!=0,]
+chonglai_zscore_1 <- t(apply(AML_FPKM_Sel_sd, 1, function(x) (x-mean(x))/sd(x)))
+Splice_UP_sel <- data.frame(Splice_UP=apply(chonglai_zscore_1,2,mean))
+Splice_UP_sel$group <- ifelse(Splice_UP_sel$Splice_UP > median(Splice_UP_sel$Splice_UP),'Norm_Splice_UP','Norm_Splice_DOWN')
+Splice_UP_sel$group <- factor(Splice_UP_sel$group,levels=c("Norm_Splice_UP","Norm_Splice_DOWN"))
+AML_clinical <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/AML_PROJECT/TCGA_AML/TCGA_AML_clinical.csv")
+AML_clinical <- AML_clinical[,c("X","patient","definition","gender","age_at_diagnosis","days_to_death","vital_status","tumor_stage","days_to_last_follow_up")]
+AML_clinical$X <- gsub("-",".",AML_clinical$X)
+rownames(AML_clinical) <- AML_clinical$X
+AML_clinical <- AML_clinical[rownames(Splice_UP_sel),]
+AML_clinical$group <- Splice_UP_sel$group
+meta <- AML_clinical[,c("days_to_death","days_to_last_follow_up","vital_status","group")]
+meta[is.na(meta)] <- "HHH"
+tmp <- subset(meta,days_to_last_follow_up=="HHH")
+tmp$days_to_last_follow_up <- tmp$days_to_death
+no_na <- meta[setdiff(rownames(meta),rownames(tmp)),]
+all_merge <- rbind(tmp,no_na)
+all_merge$status <- ifelse(all_merge$vital_status=="Alive",0,1)
+all_merge$days_to_last_follow_up <- as.numeric(all_merge$days_to_last_follow_up)
+library("survival")
+library("survminer")
+fit <- survfit(Surv(days_to_last_follow_up, status) ~ group, data = all_merge)
+aa <- ggsurvplot(fit, data = all_merge,pval = TRUE)
+aa <- ggsurvplot(fit, data = all_merge,
+surv.median.line = "hv",
+pval = TRUE,
+ggtheme = theme_bw(),
+risk.table=TRUE)
+ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/drop_seq/SPLIT/new_figure_v2/new_figure/TCGA_TARGET_Norm_SPLICE_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
+~~~
+
+![image-20210609192334663](Survival_analysismd.assets/image-20210609192334663.png)
+
+~~~R
+all_genes <- T1
+AML_FPKM_Sel <- AML_FPKM[intersect(all_genes,rownames(AML_FPKM)),]
+AML_FPKM_Sel <- log(AML_FPKM_Sel+1,2)
+AML_FPKM_Sel_sd <- AML_FPKM_Sel[apply(AML_FPKM_Sel,1,sd)!=0,]
+chonglai_zscore_1 <- t(apply(AML_FPKM_Sel_sd, 1, function(x) (x-mean(x))/sd(x)))
+Splice_UP_sel <- data.frame(Splice_UP=apply(chonglai_zscore_1,2,mean))
+Splice_UP_sel$group <- ifelse(Splice_UP_sel$Splice_UP > median(Splice_UP_sel$Splice_UP),'T1_Splice_UP','T1_Splice_DOWN')
+Splice_UP_sel$group <- factor(Splice_UP_sel$group,levels=c("T1_Splice_UP","T1_Splice_DOWN"))
+AML_clinical <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/AML_PROJECT/TCGA_AML/TCGA_AML_clinical.csv")
+AML_clinical <- AML_clinical[,c("X","patient","definition","gender","age_at_diagnosis","days_to_death","vital_status","tumor_stage","days_to_last_follow_up")]
+AML_clinical$X <- gsub("-",".",AML_clinical$X)
+rownames(AML_clinical) <- AML_clinical$X
+AML_clinical <- AML_clinical[rownames(Splice_UP_sel),]
+AML_clinical$group <- Splice_UP_sel$group
+meta <- AML_clinical[,c("days_to_death","days_to_last_follow_up","vital_status","group")]
+meta[is.na(meta)] <- "HHH"
+tmp <- subset(meta,days_to_last_follow_up=="HHH")
+tmp$days_to_last_follow_up <- tmp$days_to_death
+no_na <- meta[setdiff(rownames(meta),rownames(tmp)),]
+all_merge <- rbind(tmp,no_na)
+all_merge$status <- ifelse(all_merge$vital_status=="Alive",0,1)
+all_merge$days_to_last_follow_up <- as.numeric(all_merge$days_to_last_follow_up)
+library("survival")
+library("survminer")
+fit <- survfit(Surv(days_to_last_follow_up, status) ~ group, data = all_merge)
+aa <- ggsurvplot(fit, data = all_merge,pval = TRUE)
+aa <- ggsurvplot(fit, data = all_merge,
+surv.median.line = "hv",
+pval = TRUE,
+ggtheme = theme_bw(),
+risk.table=TRUE)
+ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/drop_seq/SPLIT/new_figure_v2/new_figure/TCGA_TARGET_T1_SPLICE_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
+~~~
+
+![image-20210609192442028](Survival_analysismd.assets/image-20210609192442028.png)
+
+~~~R
+all_genes <- T2
+AML_FPKM_Sel <- AML_FPKM[intersect(all_genes,rownames(AML_FPKM)),]
+AML_FPKM_Sel <- log(AML_FPKM_Sel+1,2)
+AML_FPKM_Sel_sd <- AML_FPKM_Sel[apply(AML_FPKM_Sel,1,sd)!=0,]
+chonglai_zscore_1 <- t(apply(AML_FPKM_Sel_sd, 1, function(x) (x-mean(x))/sd(x)))
+Splice_UP_sel <- data.frame(Splice_UP=apply(chonglai_zscore_1,2,mean))
+Splice_UP_sel$group <- ifelse(Splice_UP_sel$Splice_UP > median(Splice_UP_sel$Splice_UP),'T2_Splice_UP','T2_Splice_DOWN')
+Splice_UP_sel$group <- factor(Splice_UP_sel$group,levels=c("T2_Splice_UP","T2_Splice_DOWN"))
+AML_clinical <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/AML_PROJECT/TCGA_AML/TCGA_AML_clinical.csv")
+AML_clinical <- AML_clinical[,c("X","patient","definition","gender","age_at_diagnosis","days_to_death","vital_status","tumor_stage","days_to_last_follow_up")]
+AML_clinical$X <- gsub("-",".",AML_clinical$X)
+rownames(AML_clinical) <- AML_clinical$X
+AML_clinical <- AML_clinical[rownames(Splice_UP_sel),]
+AML_clinical$group <- Splice_UP_sel$group
+meta <- AML_clinical[,c("days_to_death","days_to_last_follow_up","vital_status","group")]
+meta[is.na(meta)] <- "HHH"
+tmp <- subset(meta,days_to_last_follow_up=="HHH")
+tmp$days_to_last_follow_up <- tmp$days_to_death
+no_na <- meta[setdiff(rownames(meta),rownames(tmp)),]
+all_merge <- rbind(tmp,no_na)
+all_merge$status <- ifelse(all_merge$vital_status=="Alive",0,1)
+all_merge$days_to_last_follow_up <- as.numeric(all_merge$days_to_last_follow_up)
+library("survival")
+library("survminer")
+fit <- survfit(Surv(days_to_last_follow_up, status) ~ group, data = all_merge)
+aa <- ggsurvplot(fit, data = all_merge,pval = TRUE)
+aa <- ggsurvplot(fit, data = all_merge,
+surv.median.line = "hv",
+pval = TRUE,
+ggtheme = theme_bw(),
+risk.table=TRUE)
+ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/drop_seq/SPLIT/new_figure_v2/new_figure/TCGA_TARGET_T2_SPLICE_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
+~~~
+
+![image-20210609192406081](Survival_analysismd.assets/image-20210609192406081.png)
+
+~~~R
+all_genes <- T3
+AML_FPKM_Sel <- AML_FPKM[intersect(all_genes,rownames(AML_FPKM)),]
+AML_FPKM_Sel <- log(AML_FPKM_Sel+1,2)
+AML_FPKM_Sel_sd <- AML_FPKM_Sel[apply(AML_FPKM_Sel,1,sd)!=0,]
+chonglai_zscore_1 <- t(apply(AML_FPKM_Sel_sd, 1, function(x) (x-mean(x))/sd(x)))
+Splice_UP_sel <- data.frame(Splice_UP=apply(chonglai_zscore_1,2,mean))
+Splice_UP_sel$group <- ifelse(Splice_UP_sel$Splice_UP > median(Splice_UP_sel$Splice_UP),'T3_Splice_UP','T3_Splice_DOWN')
+Splice_UP_sel$group <- factor(Splice_UP_sel$group,levels=c("T3_Splice_UP","T3_Splice_DOWN"))
+AML_clinical <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/AML_PROJECT/TCGA_AML/TCGA_AML_clinical.csv")
+AML_clinical <- AML_clinical[,c("X","patient","definition","gender","age_at_diagnosis","days_to_death","vital_status","tumor_stage","days_to_last_follow_up")]
+AML_clinical$X <- gsub("-",".",AML_clinical$X)
+rownames(AML_clinical) <- AML_clinical$X
+AML_clinical <- AML_clinical[rownames(Splice_UP_sel),]
+AML_clinical$group <- Splice_UP_sel$group
+meta <- AML_clinical[,c("days_to_death","days_to_last_follow_up","vital_status","group")]
+meta[is.na(meta)] <- "HHH"
+tmp <- subset(meta,days_to_last_follow_up=="HHH")
+tmp$days_to_last_follow_up <- tmp$days_to_death
+no_na <- meta[setdiff(rownames(meta),rownames(tmp)),]
+all_merge <- rbind(tmp,no_na)
+all_merge$status <- ifelse(all_merge$vital_status=="Alive",0,1)
+all_merge$days_to_last_follow_up <- as.numeric(all_merge$days_to_last_follow_up)
+library("survival")
+library("survminer")
+fit <- survfit(Surv(days_to_last_follow_up, status) ~ group, data = all_merge)
+aa <- ggsurvplot(fit, data = all_merge,pval = TRUE)
+aa <- ggsurvplot(fit, data = all_merge,
+surv.median.line = "hv",
+pval = TRUE,
+ggtheme = theme_bw(),
+risk.table=TRUE)
+ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/drop_seq/SPLIT/new_figure_v2/new_figure/TCGA_TARGET_T3_SPLICE_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
+~~~
+
+![image-20210609192512292](Survival_analysismd.assets/image-20210609192512292.png)
+
+## 2. Correlation between expression levels of Genes and clinical information  in TCGA-LAML
+
+~~~R
+TCGA_LAML <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/ALL_TCGA_DATA/RNA/FPKM/TCGA/TCGA-LAML_RNA_expr.csv")
+rownames(TCGA_LAML) <- TCGA_LAML$X
+TCGA_LAML <- TCGA_LAML[,-1]
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+anno_data=org.Hs.eg.db
+TCGA_LAML$symbol <- mapIds(x = anno_data,
+                        keys = rownames(TCGA_LAML),
+            keytype ="ENSEMBL",
+            column ="SYMBOL",
+            multiVals="first")
+TCGA_LAML <- na.omit(TCGA_LAML)
+TCGA_LAML <- TCGA_LAML[!duplicated(TCGA_LAML$symbol),]
+rownames(TCGA_LAML) <- TCGA_LAML$symbol
+TCGA_LAML <- TCGA_LAML[,-ncol(TCGA_LAML)]
+colnames(TCGA_LAML) <- substring(colnames(TCGA_LAML),1,12)
+TCGA_LAML <- as.data.frame(t(TCGA_LAML))
+TCGA_LAML1 <- log(TCGA_LAML+1,2)
+#TCGA_LAML1 <- as.data.frame(t(TCGA_LAML1))
+TCGA_LAML1 <- TCGA_LAML1[apply(TCGA_LAML1,1,sd)!=0,]
+
+TCGA_LAML_clinical <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/ALL_TCGA_DATA/clinical_info/ALL_info_includ_RNA_DNA/TCGA/TCGA-LAML_clinical.csv")
+TCGA_LAML_clinical <- TCGA_LAML_clinical[,c("gender","X","submitter_id","primary_diagnosis","site_of_resection_or_biopsy","age_at_diagnosis","days_to_death","vital_status","tumor_stage","days_to_last_follow_up")]
+TCGA_LAML_clinical$submitter_id <- gsub("-",".",TCGA_LAML_clinical$submitter_id)
+rownames(TCGA_LAML_clinical) <- TCGA_LAML_clinical$submitter_id
+#TCGA_LAML_clinical <- subset(TCGA_LAML_clinical,gender=="male")
+both_id <- intersect(rownames(TCGA_LAML1),rownames(TCGA_LAML_clinical))
+TCGA_LAML_clinical <- TCGA_LAML_clinical[both_id,]
+TCGA_LAML1 <- TCGA_LAML1[both_id,]
+
+TCGA_LAML_Sel <- data.frame(HSP90AA1=as.character(TCGA_LAML1[,"HSP90AA1"]),
+   PHGDH=as.character(TCGA_LAML1[,"PHGDH"]),
+   MYC=as.character(TCGA_LAML1[,"MYC"]),
+row.names=rownames(TCGA_LAML1))
+TCGA_LAML_Sel$PHGDH <- as.numeric(as.character(TCGA_LAML_Sel$PHGDH))
+TCGA_LAML_Sel$HSP90AA1 <- as.numeric(as.character(TCGA_LAML_Sel$HSP90AA1))
+TCGA_LAML_Sel$MYC <- as.numeric(as.character(TCGA_LAML_Sel$MYC))
+library("survival")
+library("survminer")
+TCGA_LAML_clinical_sel <- TCGA_LAML_clinical[rownames(TCGA_LAML_Sel),]
+Escc_clinical_ <- cbind(TCGA_LAML_clinical_sel,TCGA_LAML_Sel)
+meta <- Escc_clinical_
+meta[is.na(meta)] <- "HHH"
+tmp <- subset(meta,days_to_last_follow_up=="HHH")
+tmp$days_to_last_follow_up <- tmp$days_to_death
+no_na <- meta[setdiff(rownames(meta),rownames(tmp)),]
+all_merge <- rbind(tmp,no_na)
+all_merge <- subset(all_merge,days_to_last_follow_up != "HHH")
+all_merge$vital_status <- as.character(all_merge$vital_status)
+all_merge$status <- ifelse(all_merge$vital_status=="Alive",0,1)
+all_merge$days_to_last_follow_up <- as.numeric(all_merge$days_to_last_follow_up)
+all_merge.cut <- surv_cutpoint(
+   all_merge,
+   time = "days_to_last_follow_up",
+   event = "status",
+   variables = c("HSP90AA1"),
+   progressbar=TRUE,
+   minprop=0.1
+)
+summary(all_merge.cut)
+plot(all_merge.cut, "HSP90AA1")
+all_merge.cut.cat <- surv_categorize(all_merge.cut) 
+library(survival)
+fit <- survfit(Surv(days_to_last_follow_up, status) ~ HSP90AA1, data = all_merge.cut.cat)
+aa <- ggsurvplot(fit, data = all_merge.cut.cat,
+surv.median.line = "hv",
+pval = TRUE,
+ggtheme = theme_bw(),
+risk.table=TRUE)
+ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/drop_seq/SPLIT/new_figure_v2/new_figure/TCGA_LAML_HSP90AA1_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
+~~~
+
+![image-20210609192634233](Survival_analysismd.assets/image-20210609192634233.png)
+
+![image-20210609192648826](Survival_analysismd.assets/image-20210609192648826.png)
+
+~~~R
+all_merge.cut <- surv_cutpoint(
+   all_merge,
+   time = "days_to_last_follow_up",
+   event = "status",
+   variables = c("PHGDH"),
+   progressbar=TRUE,
+   minprop=0.05
+)
+summary(all_merge.cut)
+plot(all_merge.cut, "PHGDH")
+all_merge.cut.cat <- surv_categorize(all_merge.cut) 
+library(survival)
+fit <- survfit(Surv(days_to_last_follow_up, status) ~ PHGDH, data = all_merge.cut.cat)
+aa <- ggsurvplot(fit, data = all_merge.cut.cat,
+surv.median.line = "hv",
+pval = TRUE,
+ggtheme = theme_bw(),
+risk.table=TRUE)
+ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/drop_seq/SPLIT/new_figure_v2/new_figure/TCGA_LAML_PHGDH_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
+~~~
+
+![image-20210609192711409](Survival_analysismd.assets/image-20210609192711409.png)
+
+![image-20210609192719026](Survival_analysismd.assets/image-20210609192719026.png)
+
+~~~R
+all_merge.cut <- surv_cutpoint(
+   all_merge,
+   time = "days_to_last_follow_up",
+   event = "status",
+   variables = c("MYC"),
+   progressbar=TRUE,
+   minprop=0.05
+)
+summary(all_merge.cut)
+plot(all_merge.cut, "MYC")
+all_merge.cut.cat <- surv_categorize(all_merge.cut) 
+library(survival)
+fit <- survfit(Surv(days_to_last_follow_up, status) ~ MYC, data = all_merge.cut.cat)
+aa <- ggsurvplot(fit, data = all_merge.cut.cat,
+surv.median.line = "hv",
+pval = TRUE,
+ggtheme = theme_bw(),
+risk.table=TRUE)
+ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/drop_seq/SPLIT/new_figure_v2/new_figure/TCGA_LAML_MYC_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
+~~~
+
+![image-20210609192829238](Survival_analysismd.assets/image-20210609192829238.png)
+
+![image-20210609192844266](Survival_analysismd.assets/image-20210609192844266.png)
+
+## 3. Correlation between expression levels of gene signatures and clinical information  in TARGET-AML
+
+~~~R
+ALL_GSEA_GMT <- read.gmt("/mnt/data/user_data/xiangyu/programme/gsea/msigdb_v7.1/msigdb_v7.1_GMTs/all_merge/msigdb.v7.1.symbols.gmt")
+ALL_GSEA_GMT$ont <- as.character(ALL_GSEA_GMT$ont)
+Sel_GS <- XY_subset(ALL_GSEA_GMT,"ont",c("HALLMARK_MYC_TARGETS_V1","HALLMARK_MYC_TARGETS_V2"))
+library(iTALK)
+library(nichenetr)
+library(tidyr)
+Sel_GS = Sel_GS %>% mutate(mmu_Genes = convert_human_to_mouse_symbols(gene)) %>% drop_na()
+TARGET_AML <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/ALL_TCGA_DATA/RNA/FPKM/TARGET/TARGET-AML_RNA_expr.csv")
+rownames(TARGET_AML) <- TARGET_AML$X
+TARGET_AML <- TARGET_AML[,-1]
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+anno_data=org.Hs.eg.db
+TARGET_AML$symbol <- mapIds(x = anno_data,
+                        keys = rownames(TARGET_AML),
+            keytype ="ENSEMBL",
+            column ="SYMBOL",
+            multiVals="first")
+TARGET_AML <- na.omit(TARGET_AML)
+TARGET_AML <- TARGET_AML[!duplicated(TARGET_AML$symbol),]
+rownames(TARGET_AML) <- TARGET_AML$symbol
+TARGET_AML <- TARGET_AML[,-ncol(TARGET_AML)]
+colnames(TARGET_AML) <- substring(colnames(TARGET_AML),1,16)
+TARGET_AML <- as.data.frame(t(TARGET_AML))
+TARGET_AML <- log(TARGET_AML+1,2)
+
+TARGET_AML_clinical <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/ALL_TCGA_DATA/clinical_info/ALL_info_includ_RNA_DNA/TARGET/TARGET-AML_clinical.csv")
+TARGET_AML_clinical <- TARGET_AML_clinical[,c("X","submitter_id","primary_diagnosis","site_of_resection_or_biopsy","age_at_diagnosis","days_to_death","vital_status","tumor_stage","days_to_last_follow_up")]
+TARGET_AML_clinical$submitter_id <- gsub("-",".",TARGET_AML_clinical$submitter_id)
+TARGET_AML_clinical$submitter_id <- gsub("_diagnosis","",TARGET_AML_clinical$submitter_id)
+rownames(TARGET_AML_clinical) <- TARGET_AML_clinical$submitter_id
+both_id <- intersect(rownames(TARGET_AML),rownames(TARGET_AML_clinical))
+TARGET_AML_clinical <- TARGET_AML_clinical[both_id,]
+TARGET_AML <- TARGET_AML[both_id,]
+
+TARGET_AML_Sel <- data.frame(MYC_TARGETS_V1=as.character(apply(TARGET_AML[,intersect(colnames(TARGET_AML),unique(subset(Sel_GS,ont=="HALLMARK_MYC_TARGETS_V1")$gene))],1,mean)),
+  MYC_TARGETS_V2=as.character(apply(TARGET_AML[,intersect(colnames(TARGET_AML),unique(subset(Sel_GS,ont=="HALLMARK_MYC_TARGETS_V2")$gene))],1,mean)),
+  MYC_TARGETS=as.character(apply(TARGET_AML[,intersect(colnames(TARGET_AML),unique(Sel_GS$gene))],1,mean)),
+  row.names=rownames(TARGET_AML))
+TARGET_AML_Sel$MYC_TARGETS_V1 <- as.numeric(as.character(TARGET_AML_Sel$MYC_TARGETS_V1))
+TARGET_AML_Sel$MYC_TARGETS_V2 <- as.numeric(as.character(TARGET_AML_Sel$MYC_TARGETS_V2))
+TARGET_AML_Sel$MYC_TARGETS <- as.numeric(as.character(TARGET_AML_Sel$MYC_TARGETS))
+library("survival")
+library("survminer")
+TARGET_AML_clinical_sel <- TARGET_AML_clinical[rownames(TARGET_AML_Sel),]
+Escc_clinical_ <- cbind(TARGET_AML_clinical_sel,TARGET_AML_Sel)
+meta <- Escc_clinical_
+meta[is.na(meta)] <- "HHH"
+tmp <- subset(meta,days_to_last_follow_up=="HHH")
+tmp$days_to_last_follow_up <- tmp$days_to_death
+no_na <- meta[setdiff(rownames(meta),rownames(tmp)),]
+all_merge <- rbind(tmp,no_na)
+all_merge <- subset(all_merge,days_to_last_follow_up != "HHH")
+all_merge$vital_status <- as.character(all_merge$vital_status)
+all_merge$status <- ifelse(all_merge$vital_status=="Alive",0,1)
+all_merge$days_to_last_follow_up <- as.numeric(all_merge$days_to_last_follow_up)
+
+all_merge.cut <- surv_cutpoint(
+   all_merge,
+   time = "days_to_last_follow_up",
+   event = "status",
+   variables = c("MYC_TARGETS"),
+   progressbar=TRUE,
+   minprop=0.4
+)
+summary(all_merge.cut)
+plot(all_merge.cut, "MYC_TARGETS")
+all_merge.cut.cat <- surv_categorize(all_merge.cut) 
+library(survival)
+fit <- survfit(Surv(days_to_last_follow_up, status) ~ MYC_TARGETS, data = all_merge.cut.cat)
+aa <- ggsurvplot(fit, data = all_merge.cut.cat,
+surv.median.line = "hv",
+pval = TRUE,
+ggtheme = theme_bw(),
+risk.table=TRUE)
+ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/drop_seq/SPLIT/new_figure_v2/new_figure/TARGET_AML_MYC_TARGETS_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
+~~~
+
+![image-20210610113907094](Survival_analysismd.assets/image-20210610113907094.png)
+
+![image-20210610113923390](Survival_analysismd.assets/image-20210610113923390.png)
