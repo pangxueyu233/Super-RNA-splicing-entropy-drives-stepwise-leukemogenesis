@@ -3,7 +3,7 @@
 ## 1. AS events in TCGA-LAML
 
 ~~~R
-LAML_AS2_mouse <- read.csv(file="/mnt/data/user_data/xiangyu/workshop/DATABASE/AML_PROJECT/TCGA_AML/1_human_LAML_with_ourmouse_splicing.csv")
+LAML_AS2_mouse <- read.csv(file="./AML_PROJECT/TCGA_AML/1_human_LAML_with_ourmouse_splicing.csv")
 TMEM134_AS <- subset(LAML_AS2_mouse,symbol.x=="TMEM134" & splice_type.x=="ES")
 TMEM134_AS <- subset(TMEM134_AS,as_id=="17231" | as_id=="17232")
 rownames(TMEM134_AS) <- TMEM134_AS$as_id
@@ -20,7 +20,7 @@ TMEM134_AS_PSI$AS17231 <- as.numeric(as.character(TMEM134_AS_PSI$AS17231))
 TMEM134_AS_PSI$AS17232 <- as.numeric(as.character(TMEM134_AS_PSI$AS17232))
 TMEM134_AS_PSI$group <- ifelse(TMEM134_AS_PSI$AS17232 >= median(TMEM134_AS_PSI$AS17232), paste0("AS17232",' High'),paste0("AS17232",' Low'))
 
-TCGA_LAML_clinical <- read.csv("/mnt/data/user_data/xiangyu/workshop/DATABASE/ALL_TCGA_DATA/clinical_info/ALL_info_includ_RNA_DNA/TCGA/TCGA-LAML_clinical.csv")
+TCGA_LAML_clinical <- read.csv("./ALL_TCGA_DATA/clinical_info/ALL_info_includ_RNA_DNA/TCGA/TCGA-LAML_clinical.csv")
 TCGA_LAML_clinical <- TCGA_LAML_clinical[,c("gender","X","submitter_id","primary_diagnosis","site_of_resection_or_biopsy","age_at_diagnosis","days_to_death","vital_status","tumor_stage","days_to_last_follow_up")]
 TCGA_LAML_clinical$submitter_id <- gsub("-","_",TCGA_LAML_clinical$submitter_id)
 rownames(TCGA_LAML_clinical) <- TCGA_LAML_clinical$submitter_id
@@ -67,7 +67,7 @@ surv.median.line = "hv",
 pval = TRUE,
 ggtheme = theme_bw(),
 risk.table=TRUE)
-ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/drop_seq/SPLIT/new_figure_v2/new_figure/TCGA_LAML_TMEM134_AS_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
+ggsave("./new_figure_v2/new_figure/TCGA_LAML_TMEM134_AS_survival.svg", plot=aa$plot,width = 6, height = 5,dpi=1080)
 ~~~
 
 ![image-20210610114449189](TMEM134_analysis.assets/image-20210610114449189.png)

@@ -3,11 +3,68 @@
 ## 1. Unsplcied detected in pre-AML
 
 ~~~shell
+#for human data
+ref_gtf=./UCSC/hg19/Annotation/Genes/genes.gtf
+repeat_msk=/./velocity_file/refer_file/hg_19/hg19_rmsk.gtf
+velocyto run-smartseq2 ./star_bam/sortedByCoord.out.bam/*Aligned.sortedByCoord.out.bam \
+$ref_gtf -m $repeat_msk -o ./velocyto_result/MDS_AML
+
+#for mouse data
+ref_gtf=./UCSC/mm10/Annotation/Genes/genes.gtf
+repeat_msk=./velocity_file/refer_file/mm10_rmsk.gtf
+velocyto run-smartseq2 ./*.sorted.bam \
+$ref_gtf -m $repeat_msk -o ./velocyto_result
+~~~
+
+## 2. convert velocyto output to .rds files
+
+~~~R
+#for each data
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(Seurat)
+  library(Matrix)
+  library(proxy)
+  library(gplots)
+  library(Rtsne)
+  library(densityClust)
+  library(irlba)
+  library(monocle)
+  library(plyr)
+  library(DOSE)
+  library(clusterProfiler)
+  library(topGO)
+  library(pathview)
+  library(org.Mm.eg.db)
+  library(AnnotationDbi)
+  library(cowplot)
+  library(ggplot2)
+  library(velocyto.R)
+  library(trqwe)
+})
+source("./my_code/MyBestFunction_scRNA.R")
+library(future)
+library(future.apply)
+options(future.globals.maxSize = 200 * 1024^3)
+plan("multiprocess", workers = 15)
+plan()
+
+ldat <- read.loom.matrices("./velocyto_result/xxxxx.loom")
+emat <- ldat$spliced
+colnames(emat) <- gsub("onefilepercell_xxxxxx_I0M16:","",colnames(emat))
+colnames(emat) <- gsub(".sorted.bam","",colnames(emat))
+nmat <- ldat$unspliced
+colnames(nmat) <- gsub("onefilepercell_xxxxxx_I0M16:","",colnames(nmat))
+colnames(nmat) <- gsub(".sorted.bam","",colnames(nmat))
+emat <- as.data.frame(emat)
+nmat <- as.data.frame(nmat)
+mcsaveRDS(emat,"./velocyto_result/XXXX_AML_emat.rds", mc.cores=20)
+mcsaveRDS(nmat,"./velocyto_result/XXXX_AML_nmat.rds", mc.cores=20)
 ~~~
 
 
 
-## 2. Unsplcied analysis in pre-AML
+## 3. Unsplcied analysis in pre-AML
 
 ~~~R
 suppressPackageStartupMessages({
@@ -46,8 +103,8 @@ suppressPackageStartupMessages({
   library(nichenetr)
   library(tidyr)
 })
-source("/mnt/data/user_data/xiangyu/programme/R_PACKAGES/my_code/MyBestFunction_scRNA.R")
-source("/mnt/data/user_data/xiangyu/programme/R_PACKAGES/my_code/Pseudo_CNV_series.R")
+source("./my_code/MyBestFunction_scRNA.R")
+source("./my_code/Pseudo_CNV_series.R")
 library(future)
 library(future.apply)
 options(future.globals.maxSize = 300 * 1024^3)
@@ -56,7 +113,7 @@ plan()
 library(scales)
 library(BuenColors)
 
-MDS_AML_nmat <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/MDS_AML_HUMAN_nmat.rds", mc.cores=20)
+MDS_AML_nmat <- mcreadRDS("./velocyto_result/MDS_AML_HUMAN_nmat.rds", mc.cores=20)
 remid_names <- rownames(MDS_AML_nmat)[which(apply(MDS_AML_nmat,1,sum)!=0)]
 MDS_AML_nmat <- MDS_AML_nmat[remid_names,]
 MDS_AML_nmat <- MDS_AML_nmat[,c("Normal1","Normal2","Normal3","Low_risk_MDS1","Low_risk_MDS2")]
@@ -72,7 +129,7 @@ Low_risk_MDS_vs_Normal <- rbind(Low_risk_MDS,Normal)
 Low_risk_MDS_vs_Normal$group <- samples[rownames(Low_risk_MDS_vs_Normal),]$group
 Low_risk_MDS_vs_Normal$group <- factor(Low_risk_MDS_vs_Normal$group,levels=c("Normal","Low_risk_MDS"))
 
-MDS_AML_nmat <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/MDS_AML_HUMAN_nmat.rds", mc.cores=20)
+MDS_AML_nmat <- mcreadRDS("./velocyto_result/MDS_AML_HUMAN_nmat.rds", mc.cores=20)
 remid_names <- rownames(MDS_AML_nmat)[which(apply(MDS_AML_nmat,1,sum)!=0)]
 MDS_AML_nmat <- MDS_AML_nmat[remid_names,]
 MDS_AML_nmat <- MDS_AML_nmat[,c("High_risk_MDS1","High_risk_MDS2","High_risk_MDS3","Low_risk_MDS1","Low_risk_MDS2")]
@@ -89,7 +146,7 @@ High_risk_MDS_vs_Low_risk_MDS$group <- samples[rownames(High_risk_MDS_vs_Low_ris
 High_risk_MDS_vs_Low_risk_MDS$group <- factor(High_risk_MDS_vs_Low_risk_MDS$group,levels=c("Low_risk_MDS","High_risk_MDS"))
 
 
-MDS_AML_nmat <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/MDS_AML_HUMAN_nmat.rds", mc.cores=20)
+MDS_AML_nmat <- mcreadRDS("./velocyto_result/MDS_AML_HUMAN_nmat.rds", mc.cores=20)
 remid_names <- rownames(MDS_AML_nmat)[which(apply(MDS_AML_nmat,1,sum)!=0)]
 MDS_AML_nmat <- MDS_AML_nmat[remid_names,]
 MDS_AML_nmat <- MDS_AML_nmat[,c("High_risk_MDS1","High_risk_MDS2","High_risk_MDS3","MDS_AML1","MDS_AML2","MDS_AML3")]
@@ -106,7 +163,7 @@ High_risk_MDS_vs_MDS_AML$group <- samples[rownames(High_risk_MDS_vs_MDS_AML),]$g
 High_risk_MDS_vs_MDS_AML$group <- factor(High_risk_MDS_vs_MDS_AML$group,levels=c("High_risk_MDS","MDS_AML"))
 
 
-AML_MLL_AF9_nmat <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/NCBI_AML_MLL_AF9_and_Ctrl_nmat.rds", mc.cores=20)
+AML_MLL_AF9_nmat <- mcreadRDS("./velocyto_result/NCBI_AML_MLL_AF9_and_Ctrl_nmat.rds", mc.cores=20)
 remid_names <- rownames(AML_MLL_AF9_nmat)[which(apply(AML_MLL_AF9_nmat,1,sum)!=0)]
 AML_MLL_AF9_nmat <- AML_MLL_AF9_nmat[remid_names,]
 AML_MLL_AF9_nmat <- AML_MLL_AF9_nmat[,c("LKS_Ctrl_1","LKS_Ctrl_2","LKS_MLL_AF9_1","LKS_MLL_AF9_2")]
@@ -123,7 +180,7 @@ LKS_Ctrl_vs_LKS_MLL_AF9$group <- samples[rownames(LKS_Ctrl_vs_LKS_MLL_AF9),]$gro
 LKS_Ctrl_vs_LKS_MLL_AF9$group <- factor(LKS_Ctrl_vs_LKS_MLL_AF9$group,levels=c("LKS_Ctrl","LKS_MLL_AF9"))
 
 
-AML_FLT3_ITD_nmat <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/NCBI_AML_FLT3_ITD_and_Ctrl_nmat.rds", mc.cores=20)
+AML_FLT3_ITD_nmat <- mcreadRDS("./velocyto_result/NCBI_AML_FLT3_ITD_and_Ctrl_nmat.rds", mc.cores=20)
 remid_names <- rownames(AML_FLT3_ITD_nmat)[which(apply(AML_FLT3_ITD_nmat,1,sum)!=0)]
 AML_FLT3_ITD_nmat <- AML_FLT3_ITD_nmat[remid_names,]
 AML_FLT3_ITD_nmat <- AML_FLT3_ITD_nmat[,c("CreERT1","CreERT2","FLT3_ITD1","FLT3_ITD2")]
@@ -140,7 +197,7 @@ CreERT_vs_FLT3_ITD$group <- samples[rownames(CreERT_vs_FLT3_ITD),]$group
 CreERT_vs_FLT3_ITD$group <- factor(CreERT_vs_FLT3_ITD$group,levels=c("CreERT","FLT3_ITD"))
 
 
-AML1_ETO_nmat <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/AML1_ETO_nmat.rds", mc.cores=20)
+AML1_ETO_nmat <- mcreadRDS("./velocyto_result/AML1_ETO_nmat.rds", mc.cores=20)
 remid_names <- rownames(AML1_ETO_nmat)[which(apply(AML1_ETO_nmat,1,sum)!=0)]
 AML1_ETO_nmat <- AML1_ETO_nmat[remid_names,]
 AML1_ETO_nmat <- AML1_ETO_nmat[,c("WT_HSPC_1","WT_HSPC_2","WT_HSPC_3","AML1_ETO_HSPC_1",
@@ -158,7 +215,7 @@ WT_HSPC_vs_AML1_ETO_HSPC$group <- samples[rownames(WT_HSPC_vs_AML1_ETO_HSPC),]$g
 WT_HSPC_vs_AML1_ETO_HSPC$group <- factor(WT_HSPC_vs_AML1_ETO_HSPC$group,levels=c("WT_HSPC","AML1_ETO_HSPC"))
 
 
-MLL_ENL_nmat <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/MLL_ENL_2_Mut_nmat.rds", mc.cores=20)
+MLL_ENL_nmat <- mcreadRDS("./velocyto_result/MLL_ENL_2_Mut_nmat.rds", mc.cores=20)
 remid_names <- rownames(MLL_ENL_nmat)[which(apply(MLL_ENL_nmat,1,sum)!=0)]
 MLL_ENL_nmat <- MLL_ENL_nmat[remid_names,]
 MLL_ENL_nmat <- MLL_ENL_nmat[,c("WT_HSPC_1","WT_HSPC_2","WT_HSPC_3","MLL_ENL_HSPC_1",
@@ -176,7 +233,7 @@ WT_HSPC_vs_MLL_ENL_HSPC$group <- samples[rownames(WT_HSPC_vs_MLL_ENL_HSPC),]$gro
 WT_HSPC_vs_MLL_ENL_HSPC$group <- factor(WT_HSPC_vs_MLL_ENL_HSPC$group,levels=c("WT_HSPC","MLL_ENL_HSPC"))
 
 
-Tet2Mut_Flt3ITD_Mut_nmat <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/Tet2Mut_Flt3ITD_Mut_nmat.rds", mc.cores=20)
+Tet2Mut_Flt3ITD_Mut_nmat <- mcreadRDS("./velocyto_result/Tet2Mut_Flt3ITD_Mut_nmat.rds", mc.cores=20)
 remid_names <- rownames(Tet2Mut_Flt3ITD_Mut_nmat)[which(apply(Tet2Mut_Flt3ITD_Mut_nmat,1,sum)!=0)]
 Tet2Mut_Flt3ITD_Mut_nmat <- Tet2Mut_Flt3ITD_Mut_nmat[remid_names,]
 Tet2Mut_Flt3ITD_Mut_nmat <- Tet2Mut_Flt3ITD_Mut_nmat[,c("WT_BM_1","WT_BM_2","WT_BM_3","Tet2Mut_Flt3ITD_Mut_BM_1",
@@ -194,7 +251,7 @@ WT_BM_vs_Tet2Mut_Flt3ITD_Mut_BM$group <- samples[rownames(WT_BM_vs_Tet2Mut_Flt3I
 WT_BM_vs_Tet2Mut_Flt3ITD_Mut_BM$group <- factor(WT_BM_vs_Tet2Mut_Flt3ITD_Mut_BM$group,levels=c("WT_BM","Tet2Mut_Flt3ITD_Mut_BM"))
 
 
-Nras_and_Tet2_Mut_nmat <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/Nras_and_Tet2_Mut_nmat.rds", mc.cores=20)
+Nras_and_Tet2_Mut_nmat <- mcreadRDS("./velocyto_result/Nras_and_Tet2_Mut_nmat.rds", mc.cores=20)
 remid_names <- rownames(Nras_and_Tet2_Mut_nmat)[which(apply(Nras_and_Tet2_Mut_nmat,1,sum)!=0)]
 Nras_and_Tet2_Mut_nmat <- Nras_and_Tet2_Mut_nmat[remid_names,]
 Nras_and_Tet2_Mut_nmat <- Nras_and_Tet2_Mut_nmat[,c("WT_LSK_1","WT_LSK_2","WT_LSK_3","Tet2_LSK_1",
@@ -212,7 +269,7 @@ WT_LSK_vs_Tet2_LSK$group <- samples[rownames(WT_LSK_vs_Tet2_LSK),]$group
 WT_LSK_vs_Tet2_LSK$group <- factor(WT_LSK_vs_Tet2_LSK$group,levels=c("WT_LSK","Tet2_LSK"))
 
 
-NPM1C_DNMT3A_KNOCKIN <- mcreadRDS("/mnt/data/user_data/xiangyu/workshop/RNAseq/AML_ALL_BAM/velocyto_result/NPM1C_DNMT3A_KNOCKIN_nmat.rds", mc.cores=20)
+NPM1C_DNMT3A_KNOCKIN <- mcreadRDS("./velocyto_result/NPM1C_DNMT3A_KNOCKIN_nmat.rds", mc.cores=20)
 remid_names <- rownames(NPM1C_DNMT3A_KNOCKIN)[which(apply(NPM1C_DNMT3A_KNOCKIN,1,sum)!=0)]
 NPM1C_DNMT3A_KNOCKIN <- NPM1C_DNMT3A_KNOCKIN[remid_names,]
 NPM1C_DNMT3A_KNOCKIN <- NPM1C_DNMT3A_KNOCKIN[,c("WT_GMP_Cre_1","WT_GMP_Cre_2","WT_GMP_Cre_3","NPM1c_GMP_Cre_1",
@@ -237,12 +294,12 @@ ALL_MERGR <- rbind(High_risk_MDS_vs_MDS_AMLtmp[c(4:6),],High_risk_MDS_vs_Low_ris
 ALL_MERGR <- rbind(ALL_MERGR,Low_risk_MDS_vs_Normaltmp[c(3:5),])
 ALL_MERGR$US_realtive <- ALL_MERGR$US_Score/mean(subset(ALL_MERGR,group=="Normal")$US_Score)
 ALL_MERGR$group <- factor(ALL_MERGR$group,levels=c("Normal","Low_risk_MDS","High_risk_MDS","MDS_AML"))
-write.csv(ALL_MERGR,"/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/v1_Figure/low_high_MDS_AML_US_summary.csv")
+write.csv(ALL_MERGR,"./low_high_MDS_AML_US_summary.csv")
 library(ggpubr)
 p <- ggboxplot(ALL_MERGR, x = "group", y = "US_realtive", fill = "group", orientation = "horizontal",
     title="US", legend = "none",outlier.shape = NA,ylim=c(min(ALL_MERGR$US_realtive)-0.5,max(ALL_MERGR$US_realtive)+0.5)) +
     rotate_x_text(angle = 45)+stat_compare_means(method = "anova", label.y = 1.5)
-ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/v1_Figure/MDS_AML_US_summery.svg", plot=p,width = 4, height = 4,dpi=1080)
+ggsave("./MDS_AML_US_summery.svg", plot=p,width = 4, height = 4,dpi=1080)
 ~~~
 
 ![image-20210609200504383](Unspliced_analysis.assets/image-20210609200504383.png)
@@ -272,7 +329,7 @@ p1 <- ggboxplot(sum_all, x = "group", y = "ALL_US_relative", fill = "group", ori
         max(sum_all$ALL_US_relative)+0.5)) +
       rotate_x_text(angle = 45)+geom_hline(yintercept = 1, linetype = 2)+
       stat_compare_means(method = "anova", label.y = 1.5)
-ggsave("/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/v1_Figure/ALL_US_summery.svg", plot=p1,width = 4, height = 6,dpi=1080)
+ggsave("./ALL_US_summery.svg", plot=p1,width = 4, height = 6,dpi=1080)
 ~~~
 
 ![image-20210609200442271](Unspliced_analysis.assets/image-20210609200442271.png)
@@ -287,6 +344,6 @@ all_data1_ <- future_lapply(1:length(all_data),function(x){
   return(tmp)
   })
 all_data1 <- do.call(rbind,all_data1_)
-write.csv(all_data1,"/mnt/data/user_data/xiangyu/workshop/scRNA/AML_MYC/v1_Figure/pre_AML_US_summary.csv")
+write.csv(all_data1,"./pre_AML_US_summary.csv")
 ~~~
 

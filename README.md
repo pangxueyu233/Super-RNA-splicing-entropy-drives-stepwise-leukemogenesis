@@ -2,7 +2,7 @@
 
 
 
-![image-20210612113249240](README.assets/image-20210612113249240.png)
+![image-20210612124749420](README.assets/image-20210612124749420.png)
 
 Leukemogenesis is proposed to be a multi-step process for normal hematopoietic stem and progenitor cells to be transformed into full-blown leukemic cells, the details of which have not been fully understood. Here, we performed serial single-cell transcriptome analyses of pre-leukemic and leukemic cells (PLCs) and constructed the cellular and molecular transforming trajectories in a murine AML model. We found that the tipping point for HSPCs to generate the initiating PLCs was characterized by dramatically increased splicing factors and paradoxically high levels of unspliced transcripts, which led to high levels of mature mRNAs of multiple leukemia-associated genes. PLCs acquired explosive heterogeneity at the end stage, partially through RNA alternative splicing. Among them, an exon skipping of *Tmem134* gave rise to a subpopulation with increased proliferation and associated with poor prognosis. Thus, we propose that super RNA splicing entropy, indicated by simultaneous high levels of splicing factor expressions and unspliced transcripts, permits PLCs to choose tumor-promoting gene isoforms and thus gradually acquire malignancy. 
 
